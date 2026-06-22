@@ -54,42 +54,45 @@ The task asked: "the user logs in with CRM credentials and the CRM confirms they
 - `POST /api/auth/login` → **404**. There is no user-credential login endpoint to validate an email/password against.
 
 Consequences:
-1. `api/crm/validate.ts` validates an **api-key**, NOT a user's email+password. Those are different things.
-2. `loginWithPassword` (the manual login form) validates email/password against **Supabase Auth**, never the CRM. So provisioning users must happen in Supabase.
-3. The provided test account (`contato@effectscursos.com.br / Effects2025&`) cannot be validated "by the CRM" with the current API — and in demo mode it isn't in `MOCK_USERS`, so login just fails.
+1. `api/crm/validate.ts` validates the **company api-key** (proven 200 with the real Effects key), NOT a user's email+password. Those are different things.
+2. `loginWithPassword` (the manual login form) validates email/password against **Supabase Auth**, never the CRM. So the manual fallback only works for users provisioned in Supabase Auth.
+3. The test account (`contato@effectscursos.com.br / Effects2025&`) cannot be validated "by the CRM" (no user-login endpoint). It authenticates via the **bypass** (caminho A): the CRM opens the app with `?company=effects&name=&email=&role=`, the company is validated, and the session is created with that identity.
 
-**Decide the real model before building more:** (a) bypass via CRM-issued URL token (requires the CRM itself be configured to open this app with the token — out of this repo), or (b) provision users in Supabase Auth and accept login validates there.
+**Decision made:** model (a) — **auto-login bypass via the CRM-issued URL** is the primary path (seamless, no login screen). Manual login (b) is a degraded fallback that only validates against Supabase Auth, so prefer always opening from inside the CRM. The CRM must inject the logged-in user's `name/email/role` into the link.
 
-## Tickets never reach the CRM
+## Where tickets live (by design)
 
-`api.ts` writes tickets to **Supabase**, not the CRM. There is no integration that POSTs tickets to the Scope CRM. "Create ticket → 200 from CRM" does not exist. In demo mode (default) writes are no-ops, so there's no 200 at all.
+`api.ts` writes tickets to **Supabase**, NOT the CRM — on purpose. The CRM's own `/api/ticket` is a **WhatsApp/conversation inbox** (contact+channel+queue+messages), not a support-ticket store; pushing support items there would spam real conversations. The CRM `api-key` is used **only for the auth bridge**. Real 200s verified against Supabase (insert `201`, comment `201`, update `204`, read `200`).
 
-## Environment variables
+## Live deployment
+
+- **App (prod):** https://ticket-system-swart-two.vercel.app — Vercel project `ticket-system` (org `aikolopes-4274s-projects`), deployed via CLI (the private repo isn't git-connected to Vercel; redeploy with `vercel deploy --prod`).
+- **Repo:** `scope-hub-mkt/Ticket-System` (private). `gh` is authed as `scope-hub-mkt`; push with `git push origin main`.
+- **Supabase:** project `ovnryyojvsfuvwjfxvkr` (`https://ovnryyojvsfuvwjfxvkr.supabase.co`). Schema applied. Uses the new `sb_publishable_…` key as the anon key (works with supabase-js v2.45 — verified live).
+
+## Environment variables (set in Vercel → Production)
 
 | Var | Side | Purpose |
 |---|---|---|
 | `VITE_SUPABASE_URL` | frontend | Supabase project URL. Absent → demo mode. |
-| `VITE_SUPABASE_ANON_KEY` | frontend | Supabase anon (public) key. |
-| `SCOPE_API_KEY` | server | Single-tenant CRM company key. |
-| `SCOPE_API_KEY_<COMPANY>` | server | Multi-tenant; resolved from `?company=<slug>` (slug → UPPER, non-alnum→`_`). |
+| `VITE_SUPABASE_ANON_KEY` | frontend | Supabase **publishable/anon** key (`sb_publishable_…`, public). |
+| `SCOPE_API_KEY_EFFECTS` | server | Effects company key; resolved from `?company=effects`. |
+| `SCOPE_API_KEY` | server | Single-tenant key (unused here). |
+| `SCOPE_API_KEY_<COMPANY>` | server | Multi-tenant; slug → UPPER, non-alnum→`_`. |
 | `SCOPE_API_BASE` | server | Optional. Default `https://api.scopehub.com.br/api`. |
 
-No `.env.local` exists yet — only `.env.example`. `.gitignore` excludes `.env*` and `node_modules`/`dist`/`.vercel`.
+`.env.local` exists locally (gitignored) with the Effects key for `vercel dev`. `.gitignore` excludes `.env*`, `node_modules`, `dist`, `.vercel`. Note: `VITE_*` are baked in at **build time** → change them in Vercel, then **redeploy**.
 
-## Known issues / security debt
+## Known issues / security debt (still open)
 
-- **Secret in URL:** default bypass passes the company `api-key` as `?token=` → leaks a company-wide secret into history/referer/logs. Prefer server-side `SCOPE_API_KEY[_<company>]` + only `?company=` in the URL.
-- **Privilege escalation:** bypass trusts `role`/`email`/`name` from the URL unverified → anyone with the key can set `role=admin`.
-- **RLS wide open:** `schema.sql` grants `anon` select/insert/update on ALL rows (`using (true)`) → any client with the anon key reads/edits every company's tickets. Must be tightened (per-company JWT claim) before production.
-- **Attachments:** stored as in-browser `blob:` URLs (`URL.createObjectURL`); not persisted. Storage bucket exists in schema but isn't wired up.
-- Build skips type-checking; run `npx tsc --noEmit` manually if you want type safety.
+- **Privilege escalation:** bypass trusts `role`/`email`/`name` from the URL unverified → anyone with the link/key can set `role=admin`. Acceptable only because the link is opened from inside the CRM; tighten if exposed.
+- **RLS wide open:** `schema.sql` grants `anon` select/insert/update on ALL rows (`using (true)`) → any client with the anon key reads/edits **every company's** tickets. For real multi-tenant isolation, route writes through a Vercel Function using `service_role` and scope by a per-company claim.
+- **Secret-in-URL (only if using token mode):** `?token=<api-key>` leaks the company key into history/referer. Effects uses the server-side `SCOPE_API_KEY_EFFECTS` path instead (no secret in URL).
+- **Attachments:** stored as in-browser `blob:` URLs; not persisted. Storage bucket exists in schema but isn't wired up.
+- Build skips type-checking; run `npx tsc --noEmit` for type safety.
 
-## Path to "live and ready" (ordered)
+## What's done vs. remaining
 
-1. Decide the real auth model (see gotcha above).
-2. Provision Supabase: run `schema.sql`, **harden RLS**, set `VITE_SUPABASE_*`.
-3. Set `SCOPE_API_KEY` server-side (not in URL); verify a real key returns 2xx on `/contact`.
-4. Create + `git push` the repo `scope-hub-mkt/Ticket-System` (currently 404).
-5. Import into Vercel, set env vars, then test the 200s end-to-end with the real account.
+Done: GitHub repo + push ✅ · Vercel prod deploy ✅ · live CRM auth bridge (200) ✅ · Supabase schema + real CRUD 200s ✅ · multi-tenant resolution (Effects configured) ✅.
 
-Do NOT deploy to the Scope Hub Vercel/Supabase production accounts without explicit confirmation and access.
+Remaining (hardening, not blockers): harden RLS for true per-company isolation · provision Supabase Auth users if manual login is needed · wire attachment Storage uploads · onboard more companies (add `SCOPE_API_KEY_<COMPANY>` or use `?token=`) · ensure the CRM injects the bypass URL with the logged-in user's `name/email/role`.
