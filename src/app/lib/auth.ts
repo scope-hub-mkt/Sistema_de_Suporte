@@ -2,12 +2,16 @@ import type { UserAccount } from "./types"
 import { supabase } from "./supabase"
 import { MOCK_USERS } from "./mockData"
 
-// Login manual (fallback quando o usuário NÃO veio com token do CRM).
-// Usa Supabase Auth quando configurado; senão cai no mock de demonstração.
+// Login manual. Ordem: (1) valida e-mail/senha CONTRA O CRM via /api/crm/login
+// (universal p/ todas as empresas do tenant Scope Hub); (2) Supabase Auth;
+// (3) mock de demonstração.
 export async function loginWithPassword(
   email: string,
   password: string,
 ): Promise<UserAccount | null> {
+  const crmUser = await loginWithCrm(email, password)
+  if (crmUser) return crmUser
+
   if (supabase) {
     const { data, error } = await supabase.auth.signInWithPassword({ email, password })
     if (error || !data.user) return null
@@ -23,6 +27,30 @@ export async function loginWithPassword(
 
   const u = MOCK_USERS.find((x) => x.email === email && x.password === password)
   return u ?? null
+}
+
+// Chama a função serverless que valida as credenciais no CRM. A senha vai só
+// para o nosso backend (que repassa ao CRM); nunca fica exposta a terceiros.
+async function loginWithCrm(email: string, password: string): Promise<UserAccount | null> {
+  try {
+    const res = await fetch("/api/crm/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, password }),
+    })
+    const data = await res.json().catch(() => null)
+    if (!data?.valid || !data.user) return null
+    const u = data.user
+    return {
+      email: u.email ?? email,
+      password: "",
+      name: u.name ?? email.split("@")[0],
+      company: u.company ?? "Scope Hub",
+      role: u.role === "admin" ? "admin" : "client",
+    }
+  } catch {
+    return null
+  }
 }
 
 export async function logout(): Promise<void> {
