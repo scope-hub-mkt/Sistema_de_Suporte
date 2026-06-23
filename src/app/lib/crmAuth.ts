@@ -33,11 +33,20 @@ export function clearCrmSession(): void {
   }
 }
 
+// Um merge field que o CRM não resolveu chega literal, ex.: "{{user.name}}".
+// Tratamos valor vazio ou contendo "{{"/"}}" como ausente → usa o fallback.
+function clean(v: string | null): string | undefined {
+  if (!v) return undefined
+  const t = v.trim()
+  if (!t || t.includes("{{") || t.includes("}}")) return undefined
+  return t
+}
+
 function readParams() {
   const url = new URL(window.location.href)
   const q = url.searchParams
   const hash = new URLSearchParams(url.hash.replace(/^#/, ""))
-  const get = (k: string) => q.get(k) ?? hash.get(k) ?? undefined
+  const get = (k: string) => clean(q.get(k)) ?? clean(hash.get(k))
   return {
     token: get("token") ?? get("key") ?? get("apikey"),
     company: get("company") ?? get("empresa"),
