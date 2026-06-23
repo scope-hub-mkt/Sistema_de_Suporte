@@ -74,13 +74,15 @@ export async function resolveCrmSession(): Promise<UserAccount | null> {
 
   // 2) token/empresa vindo do CRM na URL
   const p = readParams()
-  if (!p.token && !p.company) return null
+  // Link único: pode chegar só com email (a empresa é derivada do domínio no
+  // backend). Aborta apenas se não houver NENHUM identificador do CRM.
+  if (!p.token && !p.company && !p.email) return null
 
   try {
     const res = await fetch("/api/crm/validate", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ token: p.token, tenant: p.tenant, company: p.company }),
+      body: JSON.stringify({ token: p.token, tenant: p.tenant, company: p.company, email: p.email }),
     })
     const data = await res.json()
     if (!data?.valid) {

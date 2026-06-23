@@ -21,6 +21,23 @@ const SCOPE_API_BASE = process.env.SCOPE_API_BASE || "https://api.scopehub.com.b
 const CRM_APP_API = process.env.CRM_APP_API_BASE || "https://api.integrador-crm.com"
 const CRM_TENANT = process.env.CRM_TENANT || "scope-hub-marketing-ltda"
 
+// ─── Link ÚNICO para todas as empresas ────────────────────────────────────────
+// O CRM não expõe token de usuário no widget — só `email` e `id`. Como o domínio
+// do e-mail já identifica a empresa, derivamos a empresa daí em vez de chumbar
+// `company=` na URL. Assim o MESMO link serve qualquer empresa: o onboarding é só
+// adicionar uma linha aqui + a env `SCOPE_API_KEY_<SLUG>` (uma vez por empresa).
+const DOMAIN_TO_COMPANY: Record<string, string> = {
+  "effectscursos.com.br": "effects",
+}
+
+function companyFromEmail(email?: string): string | undefined {
+  if (!email) return undefined
+  const at = email.lastIndexOf("@")
+  if (at < 0) return undefined
+  const domain = email.slice(at + 1).toLowerCase().trim()
+  return DOMAIN_TO_COMPANY[domain]
+}
+
 type Role = "admin" | "client"
 
 interface JwtClaims {
@@ -61,7 +78,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   const body = (typeof req.body === "string" ? safeParse(req.body) : req.body) ?? {}
-  const { token, tenant, company } = body as { token?: string; tenant?: string; company?: string }
+  const { token, tenant, company, email } = body as {
+    token?: string
+    tenant?: string
+    company?: string
+    email?: string
+  }
 
   // ── Caminho A: JWT de usuário do CRM ─────────────────────────────────────────
   // Se falhar (token ausente/inválido/expirado), NÃO retornamos erro na hora —
@@ -109,9 +131,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   // ── Caminho B: api-key de empresa (fallback) ─────────────────────────────────
-  const { key, source } = resolveApiKey(company)
+  // Empresa explícita na URL (legado) tem prioridade; senão deriva do e-mail.
+  const resolvedCompany = company || companyFromEmail(email)
+  const { key, source } = resolveApiKey(resolvedCompany)
   if (!key) {
-    return res.status(200).json({ valid: false, error: "no-crm-credential" })
+    return res.status(200).json({ valid: false, error: "no-crm-credential", company: resolvedCompany ?? null })
   }
   try {
     const r = await fetch(`${SCOPE_API_BASE}/contact`, {
@@ -119,7 +143,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       headers: { "api-key": key },
     })
     const valid = r.status >= 200 && r.status < 300
-    return res.status(200).json({ valid, crmStatus: r.status, company: company ?? null, source })
+    return res.status(200).json({ valid, crmStatus: r.status, company: resolvedCompany ?? null, source })
   } catch (e) {
     console.error("[validate] CRM unreachable:", e)
     return res.status(502).json({ valid: false, error: "crm-unreachable" })
