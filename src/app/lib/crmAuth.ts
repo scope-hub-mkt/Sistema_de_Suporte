@@ -8,9 +8,12 @@ import type { UserAccount, UserRole } from "./types"
 
 const SESSION_KEY = "crm_session"
 
+// Persistimos a sessão em localStorage (não sessionStorage) para que o login
+// SOBREVIVA ao recarregar a página e ao fechar/reabrir a aba. Antes, o login
+// manual não era salvo em lugar nenhum e qualquer reload deslogava o usuário.
 export function getStoredSession(): UserAccount | null {
   try {
-    const raw = sessionStorage.getItem(SESSION_KEY)
+    const raw = localStorage.getItem(SESSION_KEY)
     return raw ? (JSON.parse(raw) as UserAccount) : null
   } catch {
     return null
@@ -19,7 +22,7 @@ export function getStoredSession(): UserAccount | null {
 
 export function storeSession(u: UserAccount): void {
   try {
-    sessionStorage.setItem(SESSION_KEY, JSON.stringify(u))
+    localStorage.setItem(SESSION_KEY, JSON.stringify(u))
   } catch {
     /* ignore */
   }
@@ -27,6 +30,8 @@ export function storeSession(u: UserAccount): void {
 
 export function clearCrmSession(): void {
   try {
+    localStorage.removeItem(SESSION_KEY)
+    // limpa também a chave antiga em sessionStorage de versões anteriores
     sessionStorage.removeItem(SESSION_KEY)
   } catch {
     /* ignore */

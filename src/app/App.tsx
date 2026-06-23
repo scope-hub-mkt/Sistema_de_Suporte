@@ -3,15 +3,17 @@ import {
   Bug, Lightbulb, LogOut, LayoutDashboard, X, Send,
   Clock, ChevronDown, MessageSquare, Lock, BarChart2,
   ArrowRight, Upload, Film, Image as ImageIcon, Tag, User,
+  History, PlusCircle, GripVertical,
 } from "lucide-react"
 
 import type {
   UserAccount, TicketStage, TicketType, TicketCategory,
   Ticket, TicketComment, Attachment,
 } from "./lib/types"
-import { resolveCrmSession, clearCrmSession, getCrmPrefillEmail } from "./lib/crmAuth"
+import { resolveCrmSession, clearCrmSession, getCrmPrefillEmail, storeSession } from "./lib/crmAuth"
 import { loginWithPassword, logout } from "./lib/auth"
 import { dataLayer } from "./lib/api"
+import { buildTimeline, logStageChange, type TimelineEvent } from "./lib/activityLog"
 
 // ─── Constants ──────────────────────────────────────────────────────────────────
 
@@ -90,8 +92,8 @@ function LoginScreen({ onLogin, initialEmail = "" }: { onLogin: (u: UserAccount)
           <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-primary/15 border border-primary/20 mb-4">
             <BarChart2 className="w-7 h-7 text-primary" />
           </div>
-          <h1 className="text-2xl font-bold text-foreground tracking-tight">Scope Hub</h1>
-          <p className="text-muted-foreground text-sm mt-1.5">Portal de Suporte ao Cliente</p>
+          <h1 className="text-2xl font-bold text-foreground tracking-tight">CRM Scope Hub</h1>
+          <p className="text-muted-foreground text-sm mt-1.5">Sistema de Suporte ao Usuário</p>
         </div>
 
         <div className="bg-card border border-border rounded-2xl p-6 shadow-2xl shadow-black/40">
@@ -311,6 +313,81 @@ function CreateTicketModal({ type, author, onClose, onCreate }: {
   )
 }
 
+// ─── TicketTimeline ───────────────────────────────────────────────────────────
+// Histórico de atividades do ticket, isolado e cronológico: criação, respostas
+// e mudanças de etapa — com data/hora de cada evento.
+
+function TicketTimeline({ ticket }: { ticket: Ticket }) {
+  const events: TimelineEvent[] = buildTimeline(ticket)
+
+  function renderEvent(ev: TimelineEvent) {
+    if (ev.kind === "created") {
+      return (
+        <>
+          <span className="flex-shrink-0 w-6 h-6 rounded-full bg-blue-500/15 border border-blue-500/25 flex items-center justify-center">
+            <PlusCircle className="w-3.5 h-3.5 text-blue-400" />
+          </span>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm text-foreground leading-snug">
+              Ticket criado por <span className="font-medium">{ev.actor}</span>
+            </p>
+            <p className="text-xs text-muted-foreground mt-0.5">{fmtDate(ev.at)}</p>
+          </div>
+        </>
+      )
+    }
+    if (ev.kind === "stage") {
+      return (
+        <>
+          <span className="flex-shrink-0 w-6 h-6 rounded-full bg-violet-500/15 border border-violet-500/25 flex items-center justify-center">
+            <ArrowRight className="w-3.5 h-3.5 text-violet-400" />
+          </span>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm text-foreground leading-snug flex items-center gap-1.5 flex-wrap">
+              <span className="font-medium">{ev.actor}</span> moveu de
+              <span className={`text-xs px-1.5 py-0.5 rounded-full ${stageStyle[ev.from!].badge}`}>{ev.from}</span>
+              para
+              <span className={`text-xs px-1.5 py-0.5 rounded-full ${stageStyle[ev.to!].badge}`}>{ev.to}</span>
+            </p>
+            <p className="text-xs text-muted-foreground mt-0.5">{fmtDate(ev.at)}</p>
+          </div>
+        </>
+      )
+    }
+    // comment / resposta
+    return (
+      <>
+        <span className={`flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center ${ev.isAdmin ? "bg-primary/15 border border-primary/25" : "bg-secondary border border-border"}`}>
+          <MessageSquare className={`w-3.5 h-3.5 ${ev.isAdmin ? "text-primary" : "text-muted-foreground"}`} />
+        </span>
+        <div className="flex-1 min-w-0">
+          <p className="text-sm text-foreground leading-snug">
+            <span className="font-medium">{ev.actor}</span>{ev.isAdmin ? " (Suporte)" : ""} respondeu
+          </p>
+          <p className="text-xs text-muted-foreground mt-0.5 truncate">{ev.text}</p>
+          <p className="text-xs text-muted-foreground mt-0.5">{fmtDate(ev.at)}</p>
+        </div>
+      </>
+    )
+  }
+
+  return (
+    <div>
+      <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-3 flex items-center gap-1.5">
+        <History className="w-3.5 h-3.5" />
+        Histórico de atividades ({events.length})
+      </h3>
+      <ol className="relative space-y-4 before:absolute before:left-[11px] before:top-2 before:bottom-2 before:w-px before:bg-border">
+        {events.map(ev => (
+          <li key={ev.id} className="relative flex gap-3 items-start">
+            {renderEvent(ev)}
+          </li>
+        ))}
+      </ol>
+    </div>
+  )
+}
+
 // ─── TicketDetailModal ────────────────────────────────────────────────────────
 
 function TicketDetailModal({ ticket, currentUser, onClose, onUpdate }: {
@@ -429,6 +506,9 @@ function TicketDetailModal({ ticket, currentUser, onClose, onUpdate }: {
                   </button>
                 </div>
               </div>
+
+              {/* Histórico de atividades */}
+              <TicketTimeline ticket={ticket} />
             </div>
 
             {/* Right: sidebar metadata */}
@@ -493,19 +573,35 @@ function TicketDetailModal({ ticket, currentUser, onClose, onUpdate }: {
 
 // ─── KanbanBoard ──────────────────────────────────────────────────────────────
 
-function KanbanBoard({ tickets, currentUser, onTicketClick }: {
+function KanbanBoard({ tickets, currentUser, onTicketClick, onStageChange }: {
   tickets: Ticket[]
   currentUser: UserAccount
   onTicketClick: (t: Ticket) => void
+  onStageChange: (t: Ticket, stage: TicketStage) => void
 }) {
-  const visible = currentUser.role === "admin"
+  // Só admin pode mover tickets entre etapas (mesma regra do seletor de etapa).
+  const canDrag = currentUser.role === "admin"
+  const [dragId, setDragId] = useState<string | null>(null)
+  const [overStage, setOverStage] = useState<TicketStage | null>(null)
+
+  const visible = canDrag
     ? tickets
     : tickets.filter(t => t.authorEmail === currentUser.email)
+
+  function handleDrop(stage: TicketStage) {
+    if (dragId) {
+      const t = tickets.find(x => x.id === dragId)
+      if (t && t.stage !== stage) onStageChange(t, stage)
+    }
+    setDragId(null)
+    setOverStage(null)
+  }
 
   return (
     <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
       {STAGES.map(stage => {
         const cols = visible.filter(t => t.stage === stage)
+        const isOver = overStage === stage
         return (
           <div key={stage} className="flex flex-col">
             <div className="flex items-center gap-2.5 mb-3 px-0.5">
@@ -515,18 +611,32 @@ function KanbanBoard({ tickets, currentUser, onTicketClick }: {
                 {cols.length}
               </span>
             </div>
-            <div className="space-y-2.5 flex-1">
+            <div
+              onDragOver={canDrag ? (e) => { e.preventDefault(); if (overStage !== stage) setOverStage(stage) } : undefined}
+              onDragLeave={canDrag ? (e) => {
+                // só limpa se o ponteiro realmente saiu da coluna (e não entrou num filho)
+                if (!e.currentTarget.contains(e.relatedTarget as Node)) setOverStage(s => (s === stage ? null : s))
+              } : undefined}
+              onDrop={canDrag ? () => handleDrop(stage) : undefined}
+              className={`space-y-2.5 flex-1 rounded-xl transition-colors ${isOver ? "bg-primary/5 ring-2 ring-primary/40 ring-inset" : ""}`}
+            >
               {cols.map(t => (
-                <button
+                <div
                   key={t.id}
+                  draggable={canDrag}
+                  onDragStart={canDrag ? (e) => { setDragId(t.id); e.dataTransfer.effectAllowed = "move" } : undefined}
+                  onDragEnd={canDrag ? () => { setDragId(null); setOverStage(null) } : undefined}
                   onClick={() => onTicketClick(t)}
-                  className="w-full text-left bg-card border border-border rounded-xl p-3.5 hover:border-primary/40 hover:shadow-xl hover:shadow-black/30 hover:-translate-y-0.5 transition-all duration-200 group"
+                  className={`w-full text-left bg-card border border-border rounded-xl p-3.5 hover:border-primary/40 hover:shadow-xl hover:shadow-black/30 hover:-translate-y-0.5 transition-all duration-200 group ${canDrag ? "cursor-grab active:cursor-grabbing" : "cursor-pointer"} ${dragId === t.id ? "opacity-50" : ""}`}
                 >
                   <div className="flex items-start gap-2 mb-2.5">
                     <div className={`p-1.5 rounded-lg flex-shrink-0 ${t.type === "suporte" ? "bg-red-500/12" : "bg-indigo-500/12"}`}>
                       {t.type === "suporte" ? <Bug className="w-3 h-3 text-red-400" /> : <Lightbulb className="w-3 h-3 text-indigo-400" />}
                     </div>
                     <span className={`text-xs px-2 py-0.5 rounded-full leading-tight ${catStyle[t.category]}`}>{t.category}</span>
+                    {canDrag && (
+                      <GripVertical className="w-3.5 h-3.5 text-muted-foreground/50 ml-auto flex-shrink-0 group-hover:text-muted-foreground transition-colors" />
+                    )}
                   </div>
                   <p className="text-sm font-medium text-foreground leading-snug group-hover:text-primary transition-colors line-clamp-2 mb-2.5">
                     {t.title}
@@ -544,11 +654,11 @@ function KanbanBoard({ tickets, currentUser, onTicketClick }: {
                       <span className="ml-auto text-xs truncate max-w-[70px]">{t.company}</span>
                     )}
                   </div>
-                </button>
+                </div>
               ))}
               {cols.length === 0 && (
                 <div className="border-2 border-dashed border-border rounded-xl p-5 text-center">
-                  <p className="text-xs text-muted-foreground">Nenhum ticket</p>
+                  <p className="text-xs text-muted-foreground">{isOver ? "Solte aqui" : "Nenhum ticket"}</p>
                 </div>
               )}
             </div>
@@ -697,7 +807,14 @@ export default function App() {
   if (booting) return <BootScreen />
 
   if (!currentUser) {
-    return <LoginScreen onLogin={u => setCurrentUser(u)} initialEmail={prefillEmail} />
+    // Persiste a sessão no login manual também (antes só o bypass do CRM salvava),
+    // para que recarregar a página NÃO deslogue o usuário.
+    return (
+      <LoginScreen
+        onLogin={u => { storeSession(u); setCurrentUser(u) }}
+        initialEmail={prefillEmail}
+      />
+    )
   }
 
   function handleCreate(ticket: Ticket) {
@@ -710,9 +827,17 @@ export default function App() {
   function handleUpdate(updated: Ticket) {
     const prev = tickets.find(t => t.id === updated.id)
     setTickets(p => p.map(t => t.id === updated.id ? updated : t))
-    setSelectedTicket(updated)
+    // Só reflete no modal se ele já estiver aberto neste ticket — assim arrastar
+    // um card no Kanban NÃO abre o modal de detalhe sem querer.
+    setSelectedTicket(cur => (cur && cur.id === updated.id ? updated : cur))
     if (!prev) return
     if (prev.stage !== updated.stage) {
+      logStageChange(updated.id, {
+        at: new Date().toISOString(),
+        actor: currentUser!.name,
+        from: prev.stage,
+        to: updated.stage,
+      })
       void dataLayer.updateStage(updated.id, updated.stage)
     }
     if (updated.comments.length > prev.comments.length) {
@@ -738,18 +863,23 @@ export default function App() {
       <header className="border-b border-border bg-card/70 backdrop-blur-md sticky top-0 z-30">
         <div className="max-w-7xl mx-auto px-5 h-14 flex items-center gap-4">
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-xl bg-primary/15 border border-primary/20 flex items-center justify-center">
+            <div className="w-8 h-8 rounded-xl bg-primary/15 border border-primary/20 flex items-center justify-center flex-shrink-0">
               <BarChart2 className="w-4 h-4 text-primary" />
             </div>
-            <span className="font-bold text-foreground tracking-tight">Scope Hub</span>
-            {currentUser.role === "admin" && (
-              <span className="text-xs bg-primary/15 text-primary border border-primary/25 px-2 py-0.5 rounded-full font-medium">Admin</span>
-            )}
+            <div className="leading-tight">
+              <span className="block font-bold text-foreground tracking-tight text-sm">CRM Scope Hub</span>
+              <span className="block text-[11px] text-muted-foreground">Sistema de Suporte ao Usuário</span>
+            </div>
           </div>
           <div className="flex-1" />
           <div className="flex items-center gap-3">
             <div className="hidden sm:block text-right">
-              <p className="text-xs font-semibold text-foreground leading-tight">{currentUser.name}</p>
+              <p className="text-xs font-semibold text-foreground leading-tight flex items-center justify-end gap-1.5">
+                {currentUser.name}
+                {currentUser.role === "admin" && (
+                  <span className="text-[10px] bg-primary/15 text-primary border border-primary/25 px-1.5 py-0.5 rounded-full font-medium">Admin</span>
+                )}
+              </p>
               <p className="text-xs text-muted-foreground">{currentUser.company}</p>
             </div>
             <button
@@ -824,7 +954,12 @@ export default function App() {
             </span>
           </div>
 
-          <KanbanBoard tickets={tickets} currentUser={currentUser} onTicketClick={t => setSelectedTicket(t)} />
+          <KanbanBoard
+            tickets={tickets}
+            currentUser={currentUser}
+            onTicketClick={t => setSelectedTicket(t)}
+            onStageChange={(t, stage) => handleUpdate({ ...t, stage })}
+          />
         </main>
       )}
 
