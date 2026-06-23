@@ -48,7 +48,8 @@ function readParams() {
   const hash = new URLSearchParams(url.hash.replace(/^#/, ""))
   const get = (k: string) => clean(q.get(k)) ?? clean(hash.get(k))
   return {
-    token: get("token") ?? get("key") ?? get("apikey"),
+    token: get("token") ?? get("key") ?? get("apikey") ?? get("jwt"),
+    tenant: get("tenant"),
     company: get("company") ?? get("empresa"),
     name: get("name") ?? get("nome"),
     email: get("email"),
@@ -60,7 +61,7 @@ function readParams() {
 // histórico/compartilhamento/logs).
 function stripUrl() {
   const url = new URL(window.location.href)
-  ;["token", "key", "apikey", "role"].forEach((k) => url.searchParams.delete(k))
+  ;["token", "key", "apikey", "jwt", "tenant", "role"].forEach((k) => url.searchParams.delete(k))
   url.hash = ""
   const search = url.searchParams.toString()
   window.history.replaceState({}, document.title, url.pathname + (search ? `?${search}` : ""))
@@ -71,7 +72,7 @@ export async function resolveCrmSession(): Promise<UserAccount | null> {
   const existing = getStoredSession()
   if (existing) return existing
 
-  // 2) token vindo do CRM na URL
+  // 2) token/empresa vindo do CRM na URL
   const p = readParams()
   if (!p.token && !p.company) return null
 
@@ -79,7 +80,7 @@ export async function resolveCrmSession(): Promise<UserAccount | null> {
     const res = await fetch("/api/crm/validate", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ token: p.token, company: p.company }),
+      body: JSON.stringify({ token: p.token, tenant: p.tenant, company: p.company }),
     })
     const data = await res.json()
     if (!data?.valid) {
@@ -87,13 +88,25 @@ export async function resolveCrmSession(): Promise<UserAccount | null> {
       return null
     }
 
-    const user: UserAccount = {
-      email: p.email ?? "crm-user@scopehub.com.br",
-      password: "",
-      name: p.name ?? "Usuário CRM",
-      company: p.company ?? data.company ?? "Scope Hub",
-      role: p.role === "admin" ? "admin" : "client",
-    }
+    // Caminho A (per-user): a identidade vem do CRM (data.user), não da URL —
+    // assim não dá pra forjar email/role. Caminho B (empresa): usa os merge
+    // fields da URL como fallback.
+    const u = data.user
+    const user: UserAccount = u
+      ? {
+          email: u.email ?? p.email ?? "crm-user@scopehub.com.br",
+          password: "",
+          name: u.name ?? p.name ?? "Usuário CRM",
+          company: u.company ?? p.company ?? "Scope Hub",
+          role: u.role === "admin" ? "admin" : "client",
+        }
+      : {
+          email: p.email ?? "crm-user@scopehub.com.br",
+          password: "",
+          name: p.name ?? "Usuário CRM",
+          company: p.company ?? data.company ?? "Scope Hub",
+          role: p.role === "admin" ? "admin" : "client",
+        }
     storeSession(user)
     stripUrl()
     return user
