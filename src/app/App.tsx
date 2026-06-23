@@ -508,8 +508,8 @@ function TicketDetailModal({ ticket, currentUser, onClose, onUpdate }: {
                 </div>
               </div>
 
-              {/* Histórico de atividades */}
-              <TicketTimeline ticket={ticket} />
+              {/* Histórico de atividades — logs visíveis só para o admin do portal */}
+              {isAdmin && <TicketTimeline ticket={ticket} />}
             </div>
 
             {/* Right: sidebar metadata */}

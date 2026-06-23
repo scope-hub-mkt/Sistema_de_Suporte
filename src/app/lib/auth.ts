@@ -1,6 +1,7 @@
 import type { UserAccount } from "./types"
 import { supabase } from "./supabase"
 import { MOCK_USERS } from "./mockData"
+import { roleForEmail } from "./roles"
 
 // Login manual. Ordem: (1) valida e-mail/senha CONTRA O CRM via /api/crm/login
 // (universal p/ todas as empresas do tenant Scope Hub); (2) Supabase Auth;
@@ -21,12 +22,12 @@ export async function loginWithPassword(
       password: "",
       name: meta.name ?? email.split("@")[0],
       company: meta.company ?? "Scope Hub",
-      role: meta.role === "admin" ? "admin" : "client",
+      role: roleForEmail(data.user.email ?? email),
     }
   }
 
   const u = MOCK_USERS.find((x) => x.email === email && x.password === password)
-  return u ?? null
+  return u ? { ...u, role: roleForEmail(u.email) } : null
 }
 
 // Chama a função serverless que valida as credenciais no CRM. A senha vai só
@@ -46,7 +47,8 @@ async function loginWithCrm(email: string, password: string): Promise<UserAccoun
       password: "",
       name: u.name ?? email.split("@")[0],
       company: u.company ?? "Scope Hub",
-      role: u.role === "admin" ? "admin" : "client",
+      // o servidor já resolve via allowlist; reforçamos no front pela mesma regra
+      role: roleForEmail(u.email ?? email),
     }
   } catch {
     return null

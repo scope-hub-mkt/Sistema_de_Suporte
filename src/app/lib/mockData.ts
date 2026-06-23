@@ -3,10 +3,12 @@ import type { UserAccount, Ticket } from "./types"
 // Usado apenas como fallback de demonstração quando o Supabase NÃO está
 // configurado (sem VITE_SUPABASE_URL). Em produção os dados vêm do Supabase.
 
+// Papéis aqui são só rótulos do demo — em runtime o role é sempre resolvido por
+// roleForEmail (allowlist), então só scopehubmarketing@gmail.com vira admin.
 export const MOCK_USERS: UserAccount[] = [
   { email: "joao@empresa.com", password: "123456", name: "João Silva", company: "Empresa ABC", role: "client" },
   { email: "maria@techcorp.com", password: "123456", name: "Maria Santos", company: "TechCorp", role: "client" },
-  { email: "admin@suporte.com", password: "admin123", name: "Admin Suporte", company: "DS Sistemas", role: "admin" },
+  { email: "scopehubmarketing@gmail.com", password: "admin123", name: "Scope Hub", company: "Scope Hub", role: "admin" },
 ]
 
 export const INITIAL_TICKETS: Ticket[] = [

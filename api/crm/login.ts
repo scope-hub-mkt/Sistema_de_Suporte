@@ -12,6 +12,19 @@ import type { VercelRequest, VercelResponse } from "@vercel/node"
 const CRM_APP_API = process.env.CRM_APP_API_BASE || "https://api.integrador-crm.com"
 const CRM_TENANT = process.env.CRM_TENANT || "scope-hub-marketing-ltda"
 
+// Quem é ADMIN (controle total: mover cards, ver logs, ver os atendimentos de
+// TODOS os tickets). Por regra de negócio é UMA conta só; todo o resto que o CRM
+// validar é CLIENTE — cria e acompanha apenas os próprios tickets (relação 1→N).
+// Ignoramos de propósito o `profile` do CRM aqui: lá quase todo mundo é "admin"
+// da sua própria empresa, o que NÃO é o admin deste portal de suporte.
+// Configurável por env ADMIN_EMAILS (lista separada por vírgula) sem tocar no código.
+const ADMIN_EMAILS = new Set(
+  (process.env.ADMIN_EMAILS || "scopehubmarketing@gmail.com")
+    .split(",")
+    .map((e) => e.trim().toLowerCase())
+    .filter(Boolean),
+)
+
 type Role = "admin" | "client"
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
@@ -49,8 +62,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     const data = (await r.json().catch(() => null)) as Record<string, any> | null
     const u = (data?.user ?? {}) as Record<string, any>
-    const profile = (u.profile ?? "").toString().toLowerCase()
-    const role: Role = profile === "admin" || profile === "super" || u.super === true ? "admin" : "client"
+    // Papel decidido pela allowlist (NÃO pelo profile do CRM): só o admin do
+    // portal tem controle total; todos os demais são clientes.
+    const resolvedEmail = (u.email ?? email).toString().trim().toLowerCase()
+    const role: Role = ADMIN_EMAILS.has(resolvedEmail) ? "admin" : "client"
     const companyId = u.companyId ?? null
     const companyName =
       u.company?.name ?? (companyId != null ? `Empresa #${companyId}` : "Scope Hub")

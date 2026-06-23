@@ -1,4 +1,5 @@
 import type { UserAccount, UserRole } from "./types"
+import { roleForEmail } from "./roles"
 
 // ─── Bypass de login via token do CRM ──────────────────────────────────────────
 // Quando o usuário clica em "criar ticket" já logado no CRM, o CRM abre este app
@@ -106,6 +107,8 @@ export async function resolveCrmSession(): Promise<UserAccount | null> {
     // Caminho A (per-user): a identidade vem do CRM (data.user), não da URL —
     // assim não dá pra forjar email/role. Caminho B (empresa): usa os merge
     // fields da URL como fallback.
+    // Papel SEMPRE pela allowlist de e-mail (roleForEmail) — nunca confiamos no
+    // role vindo do CRM ou da URL. Só o admin do portal tem controle total.
     const u = data.user
     const user: UserAccount = u
       ? {
@@ -113,14 +116,14 @@ export async function resolveCrmSession(): Promise<UserAccount | null> {
           password: "",
           name: u.name ?? p.name ?? "Usuário CRM",
           company: u.company ?? p.company ?? "Scope Hub",
-          role: u.role === "admin" ? "admin" : "client",
+          role: roleForEmail(u.email ?? p.email),
         }
       : {
           email: p.email ?? "crm-user@scopehub.com.br",
           password: "",
           name: p.name ?? "Usuário CRM",
           company: p.company ?? data.company ?? "Scope Hub",
-          role: p.role === "admin" ? "admin" : "client",
+          role: roleForEmail(p.email),
         }
     storeSession(user)
     stripUrl()
