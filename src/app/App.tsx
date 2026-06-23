@@ -9,7 +9,7 @@ import type {
   UserAccount, TicketStage, TicketType, TicketCategory,
   Ticket, TicketComment, Attachment,
 } from "./lib/types"
-import { resolveCrmSession, clearCrmSession } from "./lib/crmAuth"
+import { resolveCrmSession, clearCrmSession, getCrmPrefillEmail } from "./lib/crmAuth"
 import { loginWithPassword, logout } from "./lib/auth"
 import { dataLayer } from "./lib/api"
 
@@ -57,8 +57,8 @@ const catStyle: Record<TicketCategory, string> = {
 
 // ─── LoginScreen ──────────────────────────────────────────────────────────────
 
-function LoginScreen({ onLogin }: { onLogin: (u: UserAccount) => void }) {
-  const [email, setEmail] = useState("")
+function LoginScreen({ onLogin, initialEmail = "" }: { onLogin: (u: UserAccount) => void; initialEmail?: string }) {
+  const [email, setEmail] = useState(initialEmail)
   const [password, setPassword] = useState("")
   const [error, setError] = useState("")
   const [loading, setLoading] = useState(false)
@@ -113,6 +113,7 @@ function LoginScreen({ onLogin }: { onLogin: (u: UserAccount) => void }) {
                 type="password"
                 value={password}
                 onChange={e => setPassword(e.target.value)}
+                autoFocus={!!initialEmail}
                 placeholder="••••••••"
                 className="w-full bg-background border border-border rounded-xl px-4 py-2.5 text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary/50 transition-all text-sm"
                 required
@@ -675,8 +676,10 @@ export default function App() {
   const [createType, setCreateType] = useState<TicketType | null>(null)
   const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(null)
   const [booting, setBooting] = useState(true)
+  const [prefillEmail, setPrefillEmail] = useState("")
 
-  // Bootstrap: tenta bypass de login via token do CRM e carrega os tickets.
+  // Bootstrap: auto-login via token do CRM (se houver) e carrega os tickets.
+  // Sem token, guarda o e-mail do widget para pré-preencher o login (híbrido).
   useEffect(() => {
     let cancelled = false
     ;(async () => {
@@ -684,6 +687,7 @@ export default function App() {
       const tks = await dataLayer.loadTickets()
       if (cancelled) return
       if (sess) setCurrentUser(sess)
+      else setPrefillEmail(getCrmPrefillEmail() ?? "")
       setTickets(tks)
       setBooting(false)
     })()
@@ -693,7 +697,7 @@ export default function App() {
   if (booting) return <BootScreen />
 
   if (!currentUser) {
-    return <LoginScreen onLogin={u => setCurrentUser(u)} />
+    return <LoginScreen onLogin={u => setCurrentUser(u)} initialEmail={prefillEmail} />
   }
 
   function handleCreate(ticket: Ticket) {

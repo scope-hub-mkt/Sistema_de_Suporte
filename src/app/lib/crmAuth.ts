@@ -67,6 +67,12 @@ function stripUrl() {
   window.history.replaceState({}, document.title, url.pathname + (search ? `?${search}` : ""))
 }
 
+// E-mail vindo do widget do CRM (?email={{user.email}}), para pré-preencher o
+// formulário de login. Retorna undefined se o merge field não foi resolvido.
+export function getCrmPrefillEmail(): string | undefined {
+  return readParams().email
+}
+
 export async function resolveCrmSession(): Promise<UserAccount | null> {
   // 1) sessão já estabelecida nesta aba
   const existing = getStoredSession()
@@ -74,9 +80,11 @@ export async function resolveCrmSession(): Promise<UserAccount | null> {
 
   // 2) token/empresa vindo do CRM na URL
   const p = readParams()
-  // Link único: pode chegar só com email (a empresa é derivada do domínio no
-  // backend). Aborta apenas se não houver NENHUM identificador do CRM.
-  if (!p.token && !p.company && !p.email) return null
+  // Auto-login (sessão sem digitar nada) só acontece com um TOKEN de usuário —
+  // validação per-user real, não falsificável. O CRM atual não expõe esse token
+  // no widget, então sem token NÃO criamos sessão aqui: o e-mail da URL é usado
+  // apenas para PRÉ-PREENCHER o login (modo híbrido — ver getCrmPrefillEmail).
+  if (!p.token) return null
 
   try {
     const res = await fetch("/api/crm/validate", {
