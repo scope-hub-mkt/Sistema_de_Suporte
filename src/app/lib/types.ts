@@ -36,6 +36,21 @@ export interface Attachment {
   mimeType: string
 }
 
+// Evento de atividade persistido na tabela public.ticket_activity. Hoje guardamos
+// as mudanças de etapa ("stage_changed"); "created"/"comment" são derivados das
+// tabelas tickets/comments na montagem da timeline.
+export type TicketActivityKind = "created" | "stage_changed" | "comment" | "reopened"
+
+export interface TicketActivity {
+  id: string
+  kind: TicketActivityKind
+  actor: string
+  fromStage?: TicketStage
+  toStage?: TicketStage
+  detail?: string
+  createdAt: Date
+}
+
 export interface Ticket {
   id: string
   title: string
@@ -49,4 +64,5 @@ export interface Ticket {
   createdAt: Date
   attachments: Attachment[]
   comments: TicketComment[]
+  activity: TicketActivity[]
 }

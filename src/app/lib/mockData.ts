@@ -21,6 +21,7 @@ export const INITIAL_TICKETS: Ticket[] = [
       { id: "C001", author: "Admin Suporte", authorRole: "admin", text: "Identificamos a causa raiz. A query de agregação do período possui um índice corrompido. Correção prevista para amanhã.", createdAt: new Date("2026-06-18T14:00:00") },
       { id: "C002", author: "João Silva", authorRole: "client", text: "Obrigado! Aguardando a correção.", createdAt: new Date("2026-06-18T14:22:00") },
     ],
+    activity: [],
   },
   {
     id: "T002",
@@ -28,7 +29,7 @@ export const INITIAL_TICKETS: Ticket[] = [
     description: "Seria muito útil poder filtrar as automações por data de criação ou última execução. Hoje precisamos rolar toda a lista para encontrar automações antigas.",
     category: "Automações", type: "sugestao", stage: "Projeção",
     author: "João Silva", authorEmail: "joao@empresa.com", company: "Empresa ABC",
-    createdAt: new Date("2026-06-20T11:00:00"), attachments: [], comments: [],
+    createdAt: new Date("2026-06-20T11:00:00"), attachments: [], comments: [], activity: [],
   },
   {
     id: "T003",
@@ -40,6 +41,7 @@ export const INITIAL_TICKETS: Ticket[] = [
     comments: [
       { id: "C003", author: "Admin Suporte", authorRole: "admin", text: "Correção aplicada no ambiente de produção. Por favor valide com um arquivo de teste e nos informe se o problema persiste.", createdAt: new Date("2026-06-20T16:00:00") },
     ],
+    activity: [],
   },
   {
     id: "T004",
@@ -51,6 +53,7 @@ export const INITIAL_TICKETS: Ticket[] = [
     comments: [
       { id: "C004", author: "Admin Suporte", authorRole: "admin", text: "Resolvido! O problema era de sincronização de cache. Canal já aparece corretamente.", createdAt: new Date("2026-06-12T10:00:00") },
     ],
+    activity: [],
   },
   {
     id: "T005",
@@ -58,6 +61,6 @@ export const INITIAL_TICKETS: Ticket[] = [
     description: "Usuários com perfil subadmin não conseguem acessar o painel de administração mesmo tendo as permissões corretas configuradas.",
     category: "Administração", type: "suporte", stage: "Projeção",
     author: "João Silva", authorEmail: "joao@empresa.com", company: "Empresa ABC",
-    createdAt: new Date("2026-06-21T16:45:00"), attachments: [], comments: [],
+    createdAt: new Date("2026-06-21T16:45:00"), attachments: [], comments: [], activity: [],
   },
 ]

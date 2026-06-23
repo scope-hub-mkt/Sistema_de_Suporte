@@ -1,41 +1,11 @@
 import type { Ticket, TicketStage } from "./types"
 
-// ─── Histórico de atividades do ticket ─────────────────────────────────────────
-// Registra eventos que NÃO ficam guardados no objeto do ticket — hoje só as
-// mudanças de etapa. "Criado" e "respondido" são derivados do próprio ticket
-// (createdAt + comments). Persistido em localStorage por ticket, então sobrevive
-// ao reload tanto em modo demo quanto com Supabase (a tabela de tickets não
-// guarda esse log). Chave: ticket_activity_<id>.
-
-export interface StageChange {
-  at: string // ISO date
-  actor: string
-  from: TicketStage
-  to: TicketStage
-}
-
-const KEY = (ticketId: string) => `ticket_activity_${ticketId}`
-
-export function getStageChanges(ticketId: string): StageChange[] {
-  try {
-    const raw = localStorage.getItem(KEY(ticketId))
-    return raw ? (JSON.parse(raw) as StageChange[]) : []
-  } catch {
-    return []
-  }
-}
-
-export function logStageChange(ticketId: string, change: StageChange): void {
-  try {
-    const arr = getStageChanges(ticketId)
-    arr.push(change)
-    localStorage.setItem(KEY(ticketId), JSON.stringify(arr))
-  } catch {
-    /* ignore */
-  }
-}
-
-// ─── Timeline unificada (criado · respondido · etapa alterada) ─────────────────
+// ─── Timeline de atividades do ticket ──────────────────────────────────────────
+// Monta o histórico cronológico a partir de DADOS REAIS do banco:
+//   • "created"  → derivado da tabela tickets (createdAt + author)
+//   • "comment"  → tabela comments (cada resposta)
+//   • "stage"    → tabela ticket_activity (mudanças de etapa persistidas)
+// Nenhum dado é fabricado: o que aparece aqui existe no Supabase.
 
 export type TimelineKind = "created" | "comment" | "stage"
 
@@ -73,17 +43,19 @@ export function buildTimeline(ticket: Ticket): TimelineEvent[] {
     }),
   )
 
-  // 3) mudanças de etapa registradas
-  getStageChanges(ticket.id).forEach((s, i) =>
-    events.push({
-      id: `stage-${ticket.id}-${i}`,
-      kind: "stage",
-      at: new Date(s.at),
-      actor: s.actor,
-      from: s.from,
-      to: s.to,
-    }),
-  )
+  // 3) mudanças de etapa (tabela ticket_activity)
+  ticket.activity
+    .filter((a) => a.kind === "stage_changed")
+    .forEach((a) =>
+      events.push({
+        id: `stage-${a.id}`,
+        kind: "stage",
+        at: a.createdAt,
+        actor: a.actor,
+        from: a.fromStage,
+        to: a.toStage,
+      }),
+    )
 
   return events.sort((a, b) => a.at.getTime() - b.at.getTime())
 }

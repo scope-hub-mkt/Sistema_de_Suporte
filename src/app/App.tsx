@@ -8,12 +8,12 @@ import {
 
 import type {
   UserAccount, TicketStage, TicketType, TicketCategory,
-  Ticket, TicketComment, Attachment,
+  Ticket, TicketComment, TicketActivity, Attachment,
 } from "./lib/types"
 import { resolveCrmSession, clearCrmSession, getCrmPrefillEmail, storeSession } from "./lib/crmAuth"
 import { loginWithPassword, logout } from "./lib/auth"
 import { dataLayer } from "./lib/api"
-import { buildTimeline, logStageChange, type TimelineEvent } from "./lib/activityLog"
+import { buildTimeline, type TimelineEvent } from "./lib/activityLog"
 
 // ─── Constants ──────────────────────────────────────────────────────────────────
 
@@ -182,6 +182,7 @@ function CreateTicketModal({ type, author, onClose, onCreate }: {
       createdAt: new Date(),
       attachments,
       comments: [],
+      activity: [],
     }
     onCreate(ticket)
   }
@@ -832,13 +833,20 @@ export default function App() {
     setSelectedTicket(cur => (cur && cur.id === updated.id ? updated : cur))
     if (!prev) return
     if (prev.stage !== updated.stage) {
-      logStageChange(updated.id, {
-        at: new Date().toISOString(),
+      const act: TicketActivity = {
+        id: uid(),
+        kind: "stage_changed",
         actor: currentUser!.name,
-        from: prev.stage,
-        to: updated.stage,
-      })
+        fromStage: prev.stage,
+        toStage: updated.stage,
+        createdAt: new Date(),
+      }
+      // reflete já no estado local (otimista) e persiste de verdade na tabela
+      const withAct: Ticket = { ...updated, activity: [...updated.activity, act] }
+      setTickets(p => p.map(t => t.id === withAct.id ? withAct : t))
+      setSelectedTicket(cur => (cur && cur.id === withAct.id ? withAct : cur))
       void dataLayer.updateStage(updated.id, updated.stage)
+      void dataLayer.addActivity(updated.id, act)
     }
     if (updated.comments.length > prev.comments.length) {
       const newComment = updated.comments[updated.comments.length - 1]

@@ -1,4 +1,4 @@
-import type { Ticket, TicketComment, TicketStage } from "./types"
+import type { Ticket, TicketComment, TicketStage, TicketActivity } from "./types"
 import { supabase } from "./supabase"
 import { INITIAL_TICKETS } from "./mockData"
 
@@ -23,6 +23,11 @@ export const dataLayer = {
       .select("*")
       .order("created_at", { ascending: true })
 
+    const { data: acts } = await supabase
+      .from("ticket_activity")
+      .select("*")
+      .order("created_at", { ascending: true })
+
     return tks.map((t) => ({
       id: t.id,
       title: t.title,
@@ -43,6 +48,17 @@ export const dataLayer = {
           authorRole: c.author_role,
           text: c.text,
           createdAt: new Date(c.created_at),
+        })),
+      activity: (acts ?? [])
+        .filter((a) => a.ticket_id === t.id)
+        .map((a) => ({
+          id: a.id,
+          kind: a.kind,
+          actor: a.actor,
+          fromStage: a.from_stage ?? undefined,
+          toStage: a.to_stage ?? undefined,
+          detail: a.detail ?? undefined,
+          createdAt: new Date(a.created_at),
         })),
     }))
   },
@@ -81,5 +97,20 @@ export const dataLayer = {
     if (!supabase) return
     const { error } = await supabase.from("tickets").update({ stage }).eq("id", ticketId)
     if (error) console.error("[api] updateStage:", error)
+  },
+
+  async addActivity(ticketId: string, a: TicketActivity): Promise<void> {
+    if (!supabase) return
+    const { error } = await supabase.from("ticket_activity").insert({
+      id: a.id,
+      ticket_id: ticketId,
+      kind: a.kind,
+      actor: a.actor,
+      from_stage: a.fromStage ?? null,
+      to_stage: a.toStage ?? null,
+      detail: a.detail ?? null,
+      created_at: a.createdAt.toISOString(),
+    })
+    if (error) console.error("[api] addActivity:", error)
   },
 }
