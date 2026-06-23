@@ -64,11 +64,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const { token, tenant, company } = body as { token?: string; tenant?: string; company?: string }
 
   // ── Caminho A: JWT de usuário do CRM ─────────────────────────────────────────
-  if (token) {
-    const claims = decodeJwt(token)
-    if (!claims?.id) {
-      return res.status(200).json({ valid: false, error: "bad-token", source: "crm-user-jwt" })
-    }
+  // Se falhar (token ausente/inválido/expirado), NÃO retornamos erro na hora —
+  // caímos para o Caminho B (empresa) quando houver chave, pra um link único e
+  // robusto funcionar nos dois cenários.
+  const claims = token ? decodeJwt(token) : null
+  if (token && claims?.id) {
     const ten = tenant || CRM_TENANT
     try {
       const r = await fetch(`${CRM_APP_API}/users/${claims.id}`, {
@@ -80,38 +80,38 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           accept: "application/json",
         },
       })
-      const valid = r.status >= 200 && r.status < 300
-      if (!valid) {
-        return res.status(200).json({ valid: false, crmStatus: r.status, source: "crm-user-jwt" })
+      if (r.status >= 200 && r.status < 300) {
+        const u = (await r.json().catch(() => null)) as Record<string, any> | null
+        const profile = (u?.profile ?? claims.profile ?? "").toString().toLowerCase()
+        const role: Role = profile === "admin" || profile === "super" ? "admin" : "client"
+        const companyId = u?.companyId ?? claims.companyId ?? null
+        const companyName = u?.company?.name ?? (companyId != null ? `Empresa #${companyId}` : "Scope Hub")
+        return res.status(200).json({
+          valid: true,
+          crmStatus: r.status,
+          source: "crm-user-jwt",
+          user: {
+            id: u?.id ?? claims.id,
+            name: u?.name ?? claims.username ?? "Usuário CRM",
+            email: u?.email ?? null,
+            companyId,
+            company: companyName,
+            role,
+          },
+        })
       }
-      const u = (await r.json().catch(() => null)) as Record<string, any> | null
-      const profile = (u?.profile ?? claims.profile ?? "").toString().toLowerCase()
-      const role: Role = profile === "admin" || profile === "super" ? "admin" : "client"
-      const companyId = u?.companyId ?? claims.companyId ?? null
-      const companyName = u?.company?.name ?? (companyId != null ? `Empresa #${companyId}` : "Scope Hub")
-      return res.status(200).json({
-        valid: true,
-        crmStatus: r.status,
-        source: "crm-user-jwt",
-        user: {
-          id: u?.id ?? claims.id,
-          name: u?.name ?? claims.username ?? "Usuário CRM",
-          email: u?.email ?? null,
-          companyId,
-          company: companyName,
-          role,
-        },
-      })
+      // token recusado/expirado → tenta o fallback de empresa abaixo
+      console.warn("[validate] user-jwt rejected:", r.status)
     } catch (e) {
       console.error("[validate] CRM (user-jwt) unreachable:", e)
-      return res.status(502).json({ valid: false, error: "crm-unreachable", source: "crm-user-jwt" })
+      // segue para o fallback
     }
   }
 
   // ── Caminho B: api-key de empresa (fallback) ─────────────────────────────────
   const { key, source } = resolveApiKey(company)
   if (!key) {
-    return res.status(400).json({ valid: false, error: "no-crm-credential" })
+    return res.status(200).json({ valid: false, error: "no-crm-credential" })
   }
   try {
     const r = await fetch(`${SCOPE_API_BASE}/contact`, {
