@@ -39,11 +39,11 @@ function fmtShort(d: Date) {
 
 function uid() { return Math.random().toString(36).substr(2, 9).toUpperCase() }
 
-const stageStyle: Record<TicketStage, { badge: string; bar: string; text: string }> = {
-  "Projeção":    { badge: "text-blue-700 bg-blue-500/10 border border-blue-500/20",    bar: "bg-blue-500",    text: "text-blue-600" },
-  "Em Progresso":{ badge: "text-amber-700 bg-amber-500/12 border border-amber-500/25",  bar: "bg-amber-500",   text: "text-amber-600" },
-  "Validação":   { badge: "text-violet-700 bg-violet-500/10 border border-violet-500/20",bar: "bg-violet-500",  text: "text-violet-600" },
-  "Resolvido":   { badge: "text-emerald-700 bg-emerald-500/10 border border-emerald-500/20",bar: "bg-emerald-500",text: "text-emerald-600" },
+const stageStyle: Record<TicketStage, { badge: string; bar: string; text: string; panel: string; count: string }> = {
+  "Projeção":    { badge: "text-blue-700 bg-blue-500/10 border border-blue-500/20",    bar: "bg-blue-500",    text: "text-blue-600",    panel: "bg-blue-50/70 border-blue-200/70",       count: "bg-blue-500/15 text-blue-700" },
+  "Em Progresso":{ badge: "text-amber-700 bg-amber-500/12 border border-amber-500/25",  bar: "bg-amber-500",   text: "text-amber-600",   panel: "bg-amber-50/70 border-amber-200/70",     count: "bg-amber-500/15 text-amber-700" },
+  "Validação":   { badge: "text-violet-700 bg-violet-500/10 border border-violet-500/20",bar: "bg-violet-500",  text: "text-violet-600",  panel: "bg-violet-50/70 border-violet-200/70",   count: "bg-violet-500/15 text-violet-700" },
+  "Resolvido":   { badge: "text-emerald-700 bg-emerald-500/10 border border-emerald-500/20",bar: "bg-emerald-500",text: "text-emerald-600", panel: "bg-emerald-50/70 border-emerald-200/70", count: "bg-emerald-500/15 text-emerald-700" },
 }
 
 const catStyle: Record<TicketCategory, string> = {
@@ -604,23 +604,24 @@ function KanbanBoard({ tickets, currentUser, onTicketClick, onStageChange }: {
         const cols = visible.filter(t => t.stage === stage)
         const isOver = overStage === stage
         return (
-          <div key={stage} className="flex flex-col">
-            <div className="flex items-center gap-2.5 mb-3 px-0.5">
+          <div
+            key={stage}
+            onDragOver={canDrag ? (e) => { e.preventDefault(); if (overStage !== stage) setOverStage(stage) } : undefined}
+            onDragLeave={canDrag ? (e) => {
+              // só limpa se o ponteiro realmente saiu da coluna (e não entrou num filho)
+              if (!e.currentTarget.contains(e.relatedTarget as Node)) setOverStage(s => (s === stage ? null : s))
+            } : undefined}
+            onDrop={canDrag ? () => handleDrop(stage) : undefined}
+            className={`flex flex-col rounded-2xl border p-3 transition-all duration-200 ${stageStyle[stage].panel} ${isOver ? "ring-2 ring-primary/40 ring-inset shadow-md" : "shadow-sm"}`}
+          >
+            <div className="flex items-center gap-2.5 mb-3 px-1 pt-0.5">
               <span className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${stageStyle[stage].bar}`} />
               <span className="text-sm font-semibold text-foreground">{stage}</span>
-              <span className="ml-auto text-xs font-mono bg-secondary text-muted-foreground rounded-full min-w-[20px] h-5 flex items-center justify-center px-1.5">
+              <span className={`ml-auto text-xs font-mono rounded-full min-w-[20px] h-5 flex items-center justify-center px-1.5 ${stageStyle[stage].count}`}>
                 {cols.length}
               </span>
             </div>
-            <div
-              onDragOver={canDrag ? (e) => { e.preventDefault(); if (overStage !== stage) setOverStage(stage) } : undefined}
-              onDragLeave={canDrag ? (e) => {
-                // só limpa se o ponteiro realmente saiu da coluna (e não entrou num filho)
-                if (!e.currentTarget.contains(e.relatedTarget as Node)) setOverStage(s => (s === stage ? null : s))
-              } : undefined}
-              onDrop={canDrag ? () => handleDrop(stage) : undefined}
-              className={`space-y-2.5 flex-1 rounded-xl transition-colors ${isOver ? "bg-primary/5 ring-2 ring-primary/40 ring-inset" : ""}`}
-            >
+            <div className="space-y-2.5 flex-1 min-h-[64px]">
               {cols.map(t => (
                 <div
                   key={t.id}
@@ -628,7 +629,7 @@ function KanbanBoard({ tickets, currentUser, onTicketClick, onStageChange }: {
                   onDragStart={canDrag ? (e) => { setDragId(t.id); e.dataTransfer.effectAllowed = "move" } : undefined}
                   onDragEnd={canDrag ? () => { setDragId(null); setOverStage(null) } : undefined}
                   onClick={() => onTicketClick(t)}
-                  className={`w-full text-left bg-card border border-border rounded-xl p-3.5 hover:border-primary/40 hover:shadow-lg hover:shadow-black/5 hover:-translate-y-0.5 transition-all duration-200 group ${canDrag ? "cursor-grab active:cursor-grabbing" : "cursor-pointer"} ${dragId === t.id ? "opacity-50" : ""}`}
+                  className={`w-full text-left bg-card border border-border rounded-xl p-3.5 shadow-sm hover:border-primary/40 hover:shadow-lg hover:shadow-black/5 hover:-translate-y-0.5 transition-all duration-200 group ${canDrag ? "cursor-grab active:cursor-grabbing" : "cursor-pointer"} ${dragId === t.id ? "opacity-50" : ""}`}
                 >
                   <div className="flex items-start gap-2 mb-2.5">
                     <div className={`p-1.5 rounded-lg flex-shrink-0 ${t.type === "suporte" ? "bg-red-500/10" : "bg-primary/10"}`}>
@@ -658,7 +659,7 @@ function KanbanBoard({ tickets, currentUser, onTicketClick, onStageChange }: {
                 </div>
               ))}
               {cols.length === 0 && (
-                <div className="border-2 border-dashed border-border rounded-xl p-5 text-center">
+                <div className={`border-2 border-dashed rounded-xl p-5 text-center transition-colors ${isOver ? "border-primary/40 bg-primary/5" : "border-foreground/10"}`}>
                   <p className="text-xs text-muted-foreground">{isOver ? "Solte aqui" : "Nenhum ticket"}</p>
                 </div>
               )}
