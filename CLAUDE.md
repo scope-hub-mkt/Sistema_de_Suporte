@@ -66,8 +66,8 @@ Consequences:
 
 ## Live deployment
 
-- **App (prod):** https://ticket-system-swart-two.vercel.app — Vercel project `ticket-system` (org `aikolopes-4274s-projects`), deployed via CLI (the private repo isn't git-connected to Vercel; redeploy with `vercel deploy --prod`).
-- **Repo:** `scope-hub-mkt/Ticket-System` (private). `gh` is authed as `scope-hub-mkt`; push with `git push origin main`.
+- **App (prod):** https://sistema-de-suporte.vercel.app — Vercel project `sistema-de-suporte` (orgId `team_vcpOSNaZIIPkxaQJIy7aKIkR`; see `.vercel/project.json`). Redeploy with `vercel deploy --prod` (or it auto-deploys on push to `main` if git-connected).
+- **Repo:** `scope-hub-mkt/Sistema_de_Suporte` (public). `git remote origin` already points here; push with `git push origin main`.
 - **Supabase:** project `ovnryyojvsfuvwjfxvkr` (`https://ovnryyojvsfuvwjfxvkr.supabase.co`). Schema applied. Uses the new `sb_publishable_…` key as the anon key (works with supabase-js v2.45 — verified live).
 
 ## Environment variables (set in Vercel → Production)

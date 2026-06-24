@@ -1,44 +1,46 @@
 @custom-variant dark (&:is(.dark *));
 
 :root {
+  /* Scope CRM light theme — 60:30:10 (white canvas · gray surfaces · orange accent).
+     Mirrors the main CRM so moving into the support portal feels like the same app. */
   --font-size: 15px;
-  --background: #0b0d17;
-  --foreground: #e2e4f0;
-  --card: #131621;
-  --card-foreground: #e2e4f0;
-  --popover: #1a1d2e;
-  --popover-foreground: #e2e4f0;
-  --primary: #6366f1;
+  --background: #f6f7f9;        /* 60% — light-gray board canvas */
+  --foreground: #1c1f26;        /* near-black text */
+  --card: #ffffff;              /* white surfaces (cards, header) */
+  --card-foreground: #1c1f26;
+  --popover: #ffffff;
+  --popover-foreground: #1c1f26;
+  --primary: #f97316;           /* 10% — Scope orange */
   --primary-foreground: #ffffff;
-  --secondary: #1c1f2e;
-  --secondary-foreground: #a0a8c0;
-  --muted: #1c1f2e;
-  --muted-foreground: #5e6380;
-  --accent: #1e2135;
-  --accent-foreground: #e2e4f0;
+  --secondary: #f1f2f4;         /* 30% — gray secondary surfaces */
+  --secondary-foreground: #4b5563;
+  --muted: #f1f2f4;
+  --muted-foreground: #6b7280;  /* gray label / meta text */
+  --accent: #f3f4f6;            /* subtle gray hover */
+  --accent-foreground: #1c1f26;
   --destructive: #ef4444;
   --destructive-foreground: #ffffff;
-  --border: rgba(255, 255, 255, 0.07);
+  --border: rgba(17, 24, 39, 0.08);
   --input: transparent;
-  --input-background: #1a1d2e;
-  --switch-background: #2e3248;
+  --input-background: #ffffff;
+  --switch-background: #d1d5db;
   --font-weight-medium: 500;
   --font-weight-normal: 400;
-  --ring: #6366f1;
-  --chart-1: #6366f1;
+  --ring: #f97316;
+  --chart-1: #f97316;
   --chart-2: #22c55e;
   --chart-3: #f59e0b;
-  --chart-4: #8b5cf6;
+  --chart-4: #6366f1;
   --chart-5: #ec4899;
   --radius: 0.75rem;
-  --sidebar: #0f1120;
-  --sidebar-foreground: #e2e4f0;
-  --sidebar-primary: #6366f1;
+  --sidebar: #ffffff;
+  --sidebar-foreground: #1c1f26;
+  --sidebar-primary: #f97316;
   --sidebar-primary-foreground: #ffffff;
-  --sidebar-accent: #1c1f2e;
-  --sidebar-accent-foreground: #e2e4f0;
-  --sidebar-border: rgba(255, 255, 255, 0.06);
-  --sidebar-ring: #6366f1;
+  --sidebar-accent: #f3f4f6;
+  --sidebar-accent-foreground: #1c1f26;
+  --sidebar-border: rgba(17, 24, 39, 0.07);
+  --sidebar-ring: #f97316;
 }
 
 .dark {

@@ -40,21 +40,21 @@ function fmtShort(d: Date) {
 function uid() { return Math.random().toString(36).substr(2, 9).toUpperCase() }
 
 const stageStyle: Record<TicketStage, { badge: string; bar: string; text: string }> = {
-  "Projeção":    { badge: "text-blue-300 bg-blue-500/10 border border-blue-500/25",    bar: "bg-blue-500",    text: "text-blue-400" },
-  "Em Progresso":{ badge: "text-amber-300 bg-amber-500/10 border border-amber-500/25",  bar: "bg-amber-500",   text: "text-amber-400" },
-  "Validação":   { badge: "text-violet-300 bg-violet-500/10 border border-violet-500/25",bar: "bg-violet-500",  text: "text-violet-400" },
-  "Resolvido":   { badge: "text-emerald-300 bg-emerald-500/10 border border-emerald-500/25",bar: "bg-emerald-500",text: "text-emerald-400" },
+  "Projeção":    { badge: "text-blue-700 bg-blue-500/10 border border-blue-500/20",    bar: "bg-blue-500",    text: "text-blue-600" },
+  "Em Progresso":{ badge: "text-amber-700 bg-amber-500/12 border border-amber-500/25",  bar: "bg-amber-500",   text: "text-amber-600" },
+  "Validação":   { badge: "text-violet-700 bg-violet-500/10 border border-violet-500/20",bar: "bg-violet-500",  text: "text-violet-600" },
+  "Resolvido":   { badge: "text-emerald-700 bg-emerald-500/10 border border-emerald-500/20",bar: "bg-emerald-500",text: "text-emerald-600" },
 }
 
 const catStyle: Record<TicketCategory, string> = {
-  "Relatórios":          "text-cyan-400 bg-cyan-500/10",
-  "Conversas":           "text-pink-400 bg-pink-500/10",
-  "CRM":                 "text-indigo-400 bg-indigo-500/10",
-  "DS Track":            "text-orange-400 bg-orange-500/10",
-  "Recursos":            "text-teal-400 bg-teal-500/10",
-  "Automações":          "text-purple-400 bg-purple-500/10",
-  "Canais de Atendimento": "text-rose-400 bg-rose-500/10",
-  "Administração":       "text-slate-400 bg-slate-500/15",
+  "Relatórios":          "text-cyan-700 bg-cyan-500/10",
+  "Conversas":           "text-pink-700 bg-pink-500/10",
+  "CRM":                 "text-indigo-700 bg-indigo-500/10",
+  "DS Track":            "text-orange-700 bg-orange-500/10",
+  "Recursos":            "text-teal-700 bg-teal-500/10",
+  "Automações":          "text-purple-700 bg-purple-500/10",
+  "Canais de Atendimento": "text-rose-700 bg-rose-500/10",
+  "Administração":       "text-slate-700 bg-slate-500/12",
 }
 
 // ─── LoginScreen ──────────────────────────────────────────────────────────────
@@ -96,7 +96,7 @@ function LoginScreen({ onLogin, initialEmail = "" }: { onLogin: (u: UserAccount)
           <p className="text-muted-foreground text-sm mt-1.5">Sistema de Suporte ao Usuário</p>
         </div>
 
-        <div className="bg-card border border-border rounded-2xl p-6 shadow-2xl shadow-black/40">
+        <div className="bg-card border border-border rounded-2xl p-6 shadow-xl shadow-black/5">
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
               <label className="block text-xs font-medium text-muted-foreground mb-1.5 uppercase tracking-wide">E-mail</label>
@@ -123,7 +123,7 @@ function LoginScreen({ onLogin, initialEmail = "" }: { onLogin: (u: UserAccount)
             </div>
 
             {error && (
-              <p className="text-red-400 text-xs bg-red-500/10 border border-red-500/20 rounded-lg px-3 py-2">{error}</p>
+              <p className="text-red-600 text-xs bg-red-500/10 border border-red-500/20 rounded-lg px-3 py-2">{error}</p>
             )}
 
             <button
@@ -188,13 +188,13 @@ function CreateTicketModal({ type, author, onClose, onCreate }: {
   }
 
   return (
-    <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div className="bg-card border border-border rounded-2xl w-full max-w-lg shadow-2xl shadow-black/60 max-h-[92vh] flex flex-col">
+    <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+      <div className="bg-card border border-border rounded-2xl w-full max-w-lg shadow-2xl shadow-black/10 max-h-[92vh] flex flex-col">
         {/* Header */}
         <div className="flex items-center justify-between p-5 border-b border-border flex-shrink-0">
           <div className="flex items-center gap-3">
-            <div className={`p-2.5 rounded-xl ${isSuport ? "bg-red-500/12" : "bg-indigo-500/12"}`}>
-              {isSuport ? <Bug className="w-5 h-5 text-red-400" /> : <Lightbulb className="w-5 h-5 text-indigo-400" />}
+            <div className={`p-2.5 rounded-xl ${isSuport ? "bg-red-500/10" : "bg-primary/10"}`}>
+              {isSuport ? <Bug className="w-5 h-5 text-red-600" /> : <Lightbulb className="w-5 h-5 text-primary" />}
             </div>
             <div>
               <h2 className="font-semibold text-foreground text-sm">
@@ -288,9 +288,9 @@ function CreateTicketModal({ type, author, onClose, onCreate }: {
                 <div className="mt-2.5 space-y-1.5">
                   {attachments.map(att => (
                     <div key={att.id} className="flex items-center gap-2.5 text-xs bg-accent/40 rounded-lg px-3 py-2 border border-border">
-                      {att.mimeType.startsWith("image") ? <ImageIcon className="w-3.5 h-3.5 text-cyan-400 flex-shrink-0" /> : <Film className="w-3.5 h-3.5 text-purple-400 flex-shrink-0" />}
+                      {att.mimeType.startsWith("image") ? <ImageIcon className="w-3.5 h-3.5 text-cyan-600 flex-shrink-0" /> : <Film className="w-3.5 h-3.5 text-purple-600 flex-shrink-0" />}
                       <span className="flex-1 truncate text-foreground">{att.name}</span>
-                      <button type="button" onClick={() => setAttachments(p => p.filter(a => a.id !== att.id))} className="text-muted-foreground hover:text-red-400 transition-colors">
+                      <button type="button" onClick={() => setAttachments(p => p.filter(a => a.id !== att.id))} className="text-muted-foreground hover:text-red-600 transition-colors">
                         <X className="w-3.5 h-3.5" />
                       </button>
                     </div>
@@ -326,7 +326,7 @@ function TicketTimeline({ ticket }: { ticket: Ticket }) {
       return (
         <>
           <span className="flex-shrink-0 w-6 h-6 rounded-full bg-blue-500/15 border border-blue-500/25 flex items-center justify-center">
-            <PlusCircle className="w-3.5 h-3.5 text-blue-400" />
+            <PlusCircle className="w-3.5 h-3.5 text-blue-600" />
           </span>
           <div className="flex-1 min-w-0">
             <p className="text-sm text-foreground leading-snug">
@@ -341,7 +341,7 @@ function TicketTimeline({ ticket }: { ticket: Ticket }) {
       return (
         <>
           <span className="flex-shrink-0 w-6 h-6 rounded-full bg-violet-500/15 border border-violet-500/25 flex items-center justify-center">
-            <ArrowRight className="w-3.5 h-3.5 text-violet-400" />
+            <ArrowRight className="w-3.5 h-3.5 text-violet-600" />
           </span>
           <div className="flex-1 min-w-0">
             <p className="text-sm text-foreground leading-snug flex items-center gap-1.5 flex-wrap">
@@ -415,12 +415,12 @@ function TicketDetailModal({ ticket, currentUser, onClose, onUpdate }: {
   }
 
   return (
-    <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div className="bg-card border border-border rounded-2xl w-full max-w-2xl shadow-2xl shadow-black/60 max-h-[92vh] flex flex-col">
+    <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+      <div className="bg-card border border-border rounded-2xl w-full max-w-2xl shadow-2xl shadow-black/10 max-h-[92vh] flex flex-col">
         {/* Header */}
         <div className="flex items-start gap-3 p-5 border-b border-border flex-shrink-0">
-          <div className={`p-2.5 rounded-xl flex-shrink-0 ${ticket.type === "suporte" ? "bg-red-500/12" : "bg-indigo-500/12"}`}>
-            {ticket.type === "suporte" ? <Bug className="w-4 h-4 text-red-400" /> : <Lightbulb className="w-4 h-4 text-indigo-400" />}
+          <div className={`p-2.5 rounded-xl flex-shrink-0 ${ticket.type === "suporte" ? "bg-red-500/10" : "bg-primary/10"}`}>
+            {ticket.type === "suporte" ? <Bug className="w-4 h-4 text-red-600" /> : <Lightbulb className="w-4 h-4 text-primary" />}
           </div>
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 flex-wrap mb-1">
@@ -453,7 +453,7 @@ function TicketDetailModal({ ticket, currentUser, onClose, onUpdate }: {
                     {ticket.attachments.map(att => (
                       <a key={att.id} href={att.url} target="_blank" rel="noreferrer"
                         className="flex items-center gap-2.5 text-xs bg-background/60 border border-border rounded-lg px-3 py-2 hover:border-primary/40 transition-colors">
-                        {att.mimeType.startsWith("image") ? <ImageIcon className="w-3.5 h-3.5 text-cyan-400" /> : <Film className="w-3.5 h-3.5 text-purple-400" />}
+                        {att.mimeType.startsWith("image") ? <ImageIcon className="w-3.5 h-3.5 text-cyan-600" /> : <Film className="w-3.5 h-3.5 text-purple-600" />}
                         <span className="truncate text-foreground">{att.name}</span>
                       </a>
                     ))}
@@ -628,11 +628,11 @@ function KanbanBoard({ tickets, currentUser, onTicketClick, onStageChange }: {
                   onDragStart={canDrag ? (e) => { setDragId(t.id); e.dataTransfer.effectAllowed = "move" } : undefined}
                   onDragEnd={canDrag ? () => { setDragId(null); setOverStage(null) } : undefined}
                   onClick={() => onTicketClick(t)}
-                  className={`w-full text-left bg-card border border-border rounded-xl p-3.5 hover:border-primary/40 hover:shadow-xl hover:shadow-black/30 hover:-translate-y-0.5 transition-all duration-200 group ${canDrag ? "cursor-grab active:cursor-grabbing" : "cursor-pointer"} ${dragId === t.id ? "opacity-50" : ""}`}
+                  className={`w-full text-left bg-card border border-border rounded-xl p-3.5 hover:border-primary/40 hover:shadow-lg hover:shadow-black/5 hover:-translate-y-0.5 transition-all duration-200 group ${canDrag ? "cursor-grab active:cursor-grabbing" : "cursor-pointer"} ${dragId === t.id ? "opacity-50" : ""}`}
                 >
                   <div className="flex items-start gap-2 mb-2.5">
-                    <div className={`p-1.5 rounded-lg flex-shrink-0 ${t.type === "suporte" ? "bg-red-500/12" : "bg-indigo-500/12"}`}>
-                      {t.type === "suporte" ? <Bug className="w-3 h-3 text-red-400" /> : <Lightbulb className="w-3 h-3 text-indigo-400" />}
+                    <div className={`p-1.5 rounded-lg flex-shrink-0 ${t.type === "suporte" ? "bg-red-500/10" : "bg-primary/10"}`}>
+                      {t.type === "suporte" ? <Bug className="w-3 h-3 text-red-600" /> : <Lightbulb className="w-3 h-3 text-primary" />}
                     </div>
                     <span className={`text-xs px-2 py-0.5 rounded-full leading-tight ${catStyle[t.category]}`}>{t.category}</span>
                     {canDrag && (
@@ -702,9 +702,9 @@ function PanelView({ tickets, currentUser, onTicketClick }: {
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-8">
         {[
           { label: "Total", count: stats.total, cls: "text-foreground", bg: "bg-secondary border-border" },
-          { label: "Abertos", count: stats.abertos, cls: "text-amber-400", bg: "bg-amber-500/8 border-amber-500/20" },
-          { label: "Em Validação", count: stats.validacao, cls: "text-violet-400", bg: "bg-violet-500/8 border-violet-500/20" },
-          { label: "Resolvidos", count: stats.resolvidos, cls: "text-emerald-400", bg: "bg-emerald-500/8 border-emerald-500/20" },
+          { label: "Abertos", count: stats.abertos, cls: "text-amber-600", bg: "bg-amber-500/8 border-amber-500/20" },
+          { label: "Em Validação", count: stats.validacao, cls: "text-violet-600", bg: "bg-violet-500/8 border-violet-500/20" },
+          { label: "Resolvidos", count: stats.resolvidos, cls: "text-emerald-600", bg: "bg-emerald-500/8 border-emerald-500/20" },
         ].map(s => (
           <div key={s.label} className={`rounded-2xl border p-4 ${s.bg}`}>
             <div className={`text-3xl font-bold ${s.cls}`}>{s.count}</div>
@@ -736,8 +736,8 @@ function PanelView({ tickets, currentUser, onTicketClick }: {
         {displayed.map(t => (
           <button key={t.id} onClick={() => onTicketClick(t)}
             className="w-full text-left bg-card border border-border rounded-xl px-4 py-3.5 hover:border-primary/40 transition-all group flex items-center gap-4">
-            <div className={`p-2 rounded-xl flex-shrink-0 ${t.type === "suporte" ? "bg-red-500/12" : "bg-indigo-500/12"}`}>
-              {t.type === "suporte" ? <Bug className="w-4 h-4 text-red-400" /> : <Lightbulb className="w-4 h-4 text-indigo-400" />}
+            <div className={`p-2 rounded-xl flex-shrink-0 ${t.type === "suporte" ? "bg-red-500/10" : "bg-primary/10"}`}>
+              {t.type === "suporte" ? <Bug className="w-4 h-4 text-red-600" /> : <Lightbulb className="w-4 h-4 text-primary" />}
             </div>
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 mb-0.5">
@@ -922,29 +922,29 @@ export default function App() {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-10">
               <button
                 onClick={() => setCreateType("suporte")}
-                className="group flex items-center gap-4 bg-card border border-border hover:border-red-500/40 rounded-2xl p-5 text-left transition-all hover:shadow-xl hover:shadow-red-500/5 hover:-translate-y-0.5 duration-200"
+                className="group flex items-center gap-4 bg-card border border-border hover:border-red-500/40 rounded-2xl p-5 text-left transition-all hover:shadow-lg hover:shadow-red-500/10 hover:-translate-y-0.5 duration-200"
               >
                 <div className="p-3.5 rounded-2xl bg-red-500/10 flex-shrink-0 group-hover:bg-red-500/18 transition-colors">
-                  <Bug className="w-6 h-6 text-red-400" />
+                  <Bug className="w-6 h-6 text-red-600" />
                 </div>
                 <div className="flex-1">
                   <h2 className="font-bold text-foreground mb-0.5">Suporte Técnico</h2>
                   <p className="text-xs text-muted-foreground leading-relaxed">Abrir ticket referente a bugs, falhas, erros e problemas técnicos</p>
                 </div>
-                <ArrowRight className="w-4 h-4 text-muted-foreground group-hover:text-red-400 group-hover:translate-x-1 transition-all flex-shrink-0" />
+                <ArrowRight className="w-4 h-4 text-muted-foreground group-hover:text-red-600 group-hover:translate-x-1 transition-all flex-shrink-0" />
               </button>
               <button
                 onClick={() => setCreateType("sugestao")}
-                className="group flex items-center gap-4 bg-card border border-border hover:border-indigo-500/40 rounded-2xl p-5 text-left transition-all hover:shadow-xl hover:shadow-indigo-500/5 hover:-translate-y-0.5 duration-200"
+                className="group flex items-center gap-4 bg-card border border-border hover:border-primary/40 rounded-2xl p-5 text-left transition-all hover:shadow-lg hover:shadow-primary/10 hover:-translate-y-0.5 duration-200"
               >
-                <div className="p-3.5 rounded-2xl bg-indigo-500/10 flex-shrink-0 group-hover:bg-indigo-500/18 transition-colors">
-                  <Lightbulb className="w-6 h-6 text-indigo-400" />
+                <div className="p-3.5 rounded-2xl bg-primary/10 flex-shrink-0 group-hover:bg-primary/20 transition-colors">
+                  <Lightbulb className="w-6 h-6 text-primary" />
                 </div>
                 <div className="flex-1">
                   <h2 className="font-bold text-foreground mb-0.5">Sugestões e Melhorias</h2>
                   <p className="text-xs text-muted-foreground leading-relaxed">Abrir ticket referente a otimizações, melhorias e sugestões de features</p>
                 </div>
-                <ArrowRight className="w-4 h-4 text-muted-foreground group-hover:text-indigo-400 group-hover:translate-x-1 transition-all flex-shrink-0" />
+                <ArrowRight className="w-4 h-4 text-muted-foreground group-hover:text-primary group-hover:translate-x-1 transition-all flex-shrink-0" />
               </button>
             </div>
           </div>
