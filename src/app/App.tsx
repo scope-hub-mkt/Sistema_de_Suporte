@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from "react"
 import {
   Bug, Lightbulb, LogOut, LayoutDashboard, X, Send,
-  Clock, ChevronDown, MessageSquare, Lock, BarChart2,
+  Clock, ChevronDown, MessageSquare, Lock,
   ArrowRight, Upload, Film, Image as ImageIcon, Tag, User,
   History, PlusCircle, GripVertical,
 } from "lucide-react"
@@ -14,6 +14,7 @@ import { resolveCrmSession, clearCrmSession, getCrmPrefillEmail, storeSession } 
 import { loginWithPassword, logout } from "./lib/auth"
 import { dataLayer } from "./lib/api"
 import { buildTimeline, type TimelineEvent } from "./lib/activityLog"
+import scopeLogo from "@/assets/scope-logo.png"
 
 // ─── Constants ──────────────────────────────────────────────────────────────────
 
@@ -89,9 +90,11 @@ function LoginScreen({ onLogin, initialEmail = "" }: { onLogin: (u: UserAccount)
       <div className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[400px] bg-primary/10 rounded-full blur-[120px] pointer-events-none" />
       <div className="relative w-full max-w-sm">
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-primary/15 border border-primary/20 mb-4">
-            <BarChart2 className="w-7 h-7 text-primary" />
-          </div>
+          <img
+            src={scopeLogo}
+            alt="Scope Hub"
+            className="w-20 h-20 mx-auto mb-4 object-contain drop-shadow-lg"
+          />
           <h1 className="text-2xl font-bold text-foreground tracking-tight">CRM Scope Hub</h1>
           <p className="text-muted-foreground text-sm mt-1.5">Sistema de Suporte ao Usuário</p>
         </div>
@@ -770,9 +773,7 @@ function BootScreen() {
   return (
     <div className="min-h-screen bg-background flex items-center justify-center">
       <div className="flex flex-col items-center gap-4">
-        <div className="w-12 h-12 rounded-2xl bg-primary/15 border border-primary/20 flex items-center justify-center animate-pulse">
-          <BarChart2 className="w-6 h-6 text-primary" />
-        </div>
+        <img src={scopeLogo} alt="Scope Hub" className="w-16 h-16 object-contain animate-pulse" />
         <p className="text-sm text-muted-foreground">Conectando ao Scope...</p>
       </div>
     </div>
@@ -872,9 +873,7 @@ export default function App() {
       <header className="border-b border-border bg-card/70 backdrop-blur-md sticky top-0 z-30">
         <div className="max-w-7xl mx-auto px-5 h-14 flex items-center gap-4">
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-xl bg-primary/15 border border-primary/20 flex items-center justify-center flex-shrink-0">
-              <BarChart2 className="w-4 h-4 text-primary" />
-            </div>
+            <img src={scopeLogo} alt="Scope Hub" className="w-8 h-8 object-contain flex-shrink-0" />
             <div className="leading-tight">
               <span className="block font-bold text-foreground tracking-tight text-sm">CRM Scope Hub</span>
               <span className="block text-[11px] text-muted-foreground">Sistema de Suporte ao Usuário</span>
