@@ -19,7 +19,7 @@ const CRM_TENANT = process.env.CRM_TENANT || "scope-hub-marketing-ltda"
 // da sua própria empresa, o que NÃO é o admin deste portal de suporte.
 // Configurável por env ADMIN_EMAILS (lista separada por vírgula) sem tocar no código.
 const ADMIN_EMAILS = new Set(
-  (process.env.ADMIN_EMAILS || "scopehubmarketing@gmail.com")
+  (process.env.ADMIN_EMAILS || "scopehubmarketing@gmail.com,jordana@scopehub.com.br")
     .split(",")
     .map((e) => e.trim().toLowerCase())
     .filter(Boolean),
